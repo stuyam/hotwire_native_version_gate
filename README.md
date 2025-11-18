@@ -83,15 +83,13 @@ class ApplicationController < ActionController::Base
   # Enable a feature for iOS based on a method defined in your controller:
   native_feature :beta_feature, ios: :should_enable_ios_beta?
 
-  # Enable for apps without version info (works with fallback regex):
-  # User agents like "Hotwire Native iOS;" will match and return true/false
-  native_feature :legacy_feature, ios: true, android: true
-
-  private
-
   def should_enable_ios_beta?
     ENV['BETA_ENABLED'] == 'true'
   end
+
+  # Enable for ios vs android even if there is no version info aka. existing apps
+  # User agents like "Hotwire Native iOS;" will match and return true/false
+  native_feature :legacy_feature, ios: true, android: true
 end
 ```
 
