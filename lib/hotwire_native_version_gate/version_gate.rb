@@ -5,18 +5,24 @@ module HotwireNativeVersionGate
     # Default regex example: Hotwire Native App iOS/1.0.0;
     # Expected capture groups: platform = (iOS|Android), version = semantic version
     DEFAULT_NATIVE_VERSION_REGEX = /\bHotwire Native App (?<platform>iOS|Android)\/(?<version>\d+(?:\.\d+)*)\b/
+    # Default fallback for apps that don't have the version in the User Agent ex: Hotwire Native iOS;
+    FALLBACK_NATIVE_VERSION_REGEX = /\b(Turbo|Hotwire) Native (?<platform>iOS|Android)\b/
 
     @native_features = {}
-    @native_version_regex = DEFAULT_NATIVE_VERSION_REGEX
+    @native_version_regexes = [ DEFAULT_NATIVE_VERSION_REGEX, FALLBACK_NATIVE_VERSION_REGEX ]
 
     class << self
-      attr_reader :native_features, :native_version_regex
+      attr_reader :native_features, :native_version_regexes
 
-      def native_version_regex=(regex)
-        unless regex.is_a?(Regexp)
-          raise ArgumentError, "native_version_regex must be a Regexp"
-        end
-        @native_version_regex = regex
+      def native_version_regexes=(regexes)
+        regexes_array = validate_regexes(regexes)
+        @native_version_regexes = regexes_array
+      end
+
+      def prepend_native_version_regexes(regexes)
+        regexes_array = validate_regexes(regexes)
+        @native_version_regexes ||= []
+        @native_version_regexes = regexes_array + @native_version_regexes
       end
 
       def native_feature(feature, ios: false, android: false)
@@ -38,10 +44,31 @@ module HotwireNativeVersionGate
 
       private
 
-      def match_platform(user_agent)
-        match = user_agent.to_s.match(@native_version_regex)
-        return match[:platform] if match
+      def validate_regexes(regexes)
+        # Support both single regex and array of regexes
+        regexes_array = Array(regexes)
+
+        # Validate all elements are Regexp objects
+        regexes_array.each do |regex|
+          unless regex.is_a?(Regexp)
+            raise ArgumentError, "native_version_regexes must be an array of Regexp objects, got: #{regex.class}"
+          end
+        end
+
+        regexes_array
+      end
+
+      def match_key(user_agent, key)
+        # Try each regex in order until one matches and has the requested key
+        @native_version_regexes.each do |regex|
+          match = user_agent.to_s.match(regex)
+          return match[key] if match&.names&.include?(key.to_s) && match[key]
+        end
         nil
+      end
+
+      def match_platform(user_agent)
+        match_key(user_agent, :platform)
       end
 
       def handle_feature(feature_config, user_agent, context: nil)
@@ -51,9 +78,9 @@ module HotwireNativeVersionGate
         return true if feature_config == true
         # if a string, compare the version
         if feature_config.is_a?(String)
-          match = user_agent.to_s.match(@native_version_regex)
-          return false unless match
-          return Gem::Version.new(feature_config) <= Gem::Version.new(match[:version])
+          version = match_key(user_agent, :version)
+          return false unless version
+          return Gem::Version.new(feature_config) <= Gem::Version.new(version)
         end
         # if a symbol, call the method on the context (if provided) or self
         if feature_config.is_a?(Symbol)

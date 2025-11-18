@@ -9,8 +9,12 @@ module HotwireNativeVersionGate
         VersionGate.native_feature(feature, ios: ios, android: android)
       end
 
-      def native_version_regex=(regex)
-        VersionGate.native_version_regex = regex
+      def native_version_regexes=(regexes)
+        VersionGate.native_version_regexes = regexes
+      end
+
+      def prepend_native_version_regexes(regexes)
+        VersionGate.prepend_native_version_regexes(regexes)
       end
     end
 

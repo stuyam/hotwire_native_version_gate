@@ -22,7 +22,7 @@ if let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as
 val appVersion = packageManager.getPackageInfo(packageName, 0).versionName
 Hotwire.config.applicationUserAgentPrefix = "Hotwire Native App Android/$appVersion;"
 ```
-Note: For older versions of you app that don't have the User Agent set yet `native_feature_enabled?` will always return `false`.
+Note: For older apps with the the user agent not set with the version, the gem includes a fallback regex that matches user agents the existing `Hotwire Native iOS;` user agent (without version numbers). For these cases, you can only use boolean flags (`true`/`false`) or symbol methods - version string requirements will return `false` since there's no version to compare. This allows you to still differential ios vs android on older versions of your apps.
 
 **Step 2**: Install the gem in your Rails app:
 ```
@@ -79,9 +79,13 @@ class ApplicationController < ActionController::Base
 
   # Enable for iOS but disable for Android:
   native_feature :future_feature, ios: true, android: false # default is false
-  
+
   # Enable a feature for iOS based on a method defined in your controller:
   native_feature :beta_feature, ios: :should_enable_ios_beta?
+
+  # Enable for apps without version info (works with fallback regex):
+  # User agents like "Hotwire Native iOS;" will match and return true/false
+  native_feature :legacy_feature, ios: true, android: true
 
   private
 
@@ -97,18 +101,33 @@ Once defined, you can use `native_feature_enabled?(:feature_name)` anywhere the 
 
 #### Customizing the User Agent regex
 
-By default, the gem expects the User Agent to match the pattern `Hotwire Native App iOS/1.0.0` or `Hotwire Native App Android/1.0.0`. If your app uses a different format, you can customize the regex pattern:
+**Note:** You typically don't need to customize the regex patterns. The gem includes default regexes that handle most common cases:
+1. `Hotwire Native App iOS/1.0.0` or `Hotwire Native App Android/1.0.0` (with version)
+2. `Hotwire Native iOS;` or `Turbo Native Android;` (fallback without version)
+
+If your app uses a different User Agent format, you can customize the regex patterns:
 
 ```ruby
 class ApplicationController < ActionController::Base
   include HotwireNativeVersionGate::Concern
 
-  # Custom regex must include named capture groups: platform and version
-  self.native_version_regex = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+  # Replace all regexes with a single custom regex
+  self.native_version_regexes = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+
+  # Or prepend a custom regex to try first (keeps defaults as fallback)
+  prepend_native_version_regexes(/\bCustomApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/)
+
+  # Or set multiple regexes as an array
+  self.native_version_regexes = [
+    /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/,
+    /\bMyApp (?<platform>iOS|Android)\b/  # fallback without version
+  ]
 end
 ```
 
 **Important:** Your custom regex must include named capture groups:
 - `(?<platform>...)` - Should capture "iOS" or "Android"
-- `(?<version>...)` - Should capture the semantic version number
+- `(?<version>...)` - Optional: Should capture the semantic version number if you want to support version-based feature gating
+
+The regexes are tried in order until one matches. If a regex matches but doesn't have a `version` capture group, version string requirements will return `false`, but boolean flags (`true`/`false`) and symbol methods will work normally.
 
