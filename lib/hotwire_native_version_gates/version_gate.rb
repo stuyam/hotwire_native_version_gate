@@ -3,8 +3,8 @@
 module HotwireNativeVersionGates
   class VersionGate
     # Default regex example: Hotwire Native App iOS/1.0.0;
-    # Expected capture groups: [1] = platform (iOS|Android), [2] = version (semantic version)
-    DEFAULT_NATIVE_VERSION_REGEX = /Hotwire Native App (iOS|Android)\/(\d+\.\d+\.\d+)/
+    # Expected capture groups: platform = (iOS|Android), version = semantic version
+    DEFAULT_NATIVE_VERSION_REGEX = /\bHotwire Native App (?<platform>iOS|Android)\/(?<version>\d+(?:\.\d+)*)\b/
 
     @native_features = {}
     @native_version_regex = DEFAULT_NATIVE_VERSION_REGEX
@@ -40,7 +40,7 @@ module HotwireNativeVersionGates
 
       def match_platform(user_agent)
         match = user_agent.to_s.match(@native_version_regex)
-        return match[1] if match
+        return match[:platform] if match
         nil
       end
 
@@ -53,7 +53,7 @@ module HotwireNativeVersionGates
         if feature_config.is_a?(String)
           match = user_agent.to_s.match(@native_version_regex)
           return false unless match
-          return Gem::Version.new(feature_config) <= Gem::Version.new(match[2])
+          return Gem::Version.new(feature_config) <= Gem::Version.new(match[:version])
         end
         # if a symbol, call the method
         return send(feature_config, user_agent) if feature_config.is_a?(Symbol)
