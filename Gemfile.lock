@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hotwire_native_version_gate (0.3.0)
+    hotwire_native_version_gate (0.4.0)
       activesupport (>= 6.0.0)
 
 GEM
