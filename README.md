@@ -1,6 +1,6 @@
 # Hotwire Native Version Gate
 
-Easy version gating for Hotwire Native Apps in Rails. Allows you to specify features that you want turned on or off based on Hotwire Native iOS or Android versions.
+Easy version gating for Hotwire Native Apps in Rails. Allows you to specify features that you want turned on or off based on whether the request is from iOS, Android, and their app versions.
 
 ### How it works
 
