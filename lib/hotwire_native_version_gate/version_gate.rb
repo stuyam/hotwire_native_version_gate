@@ -42,7 +42,6 @@ module HotwireNativeVersionGate
         # Support both single regex and array of regexes
         regexes_array = Array(regexes)
 
-        # Validate all elements are Regexp objects
         regexes_array.each do |regex|
           unless regex.is_a?(Regexp)
             raise ArgumentError, "native_version_regexes must be an array of Regexp objects, got: #{regex.class}"
@@ -53,7 +52,6 @@ module HotwireNativeVersionGate
       end
 
       def match_key(user_agent, key)
-        # Try each regex in order until one matches and has the requested key
         @native_version_regexes.each do |regex|
           match = user_agent.to_s.match(regex)
           return match[key] if match&.names&.include?(key.to_s) && match[key]
