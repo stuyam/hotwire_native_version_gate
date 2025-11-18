@@ -86,3 +86,21 @@ end
 The method referenced by the symbol (e.g., `should_enable_ios_beta?`) should be defined in your controller and return `true` or `false`. The method will be called in the context of the controller instance, giving you access to instance variables and other controller methods.
 
 Once defined, you can use `native_feature_enabled?(:feature_name)` anywhere the concern is included (e.g., controllers or views) to conditionally render content based on the requesting app's platform and version.
+
+#### Customizing the User Agent regex
+
+By default, the gem expects the User Agent to match the pattern `Hotwire Native App iOS/1.0.0` or `Hotwire Native App Android/1.0.0`. If your app uses a different format, you can customize the regex pattern:
+
+```ruby
+class ApplicationController < ActionController::Base
+  include HotwireNativeVersionGate::Concern
+
+  # Custom regex must include named capture groups: platform and version
+  self.native_version_regex = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+end
+```
+
+**Important:** Your custom regex must include named capture groups:
+- `(?<platform>...)` - Should capture "iOS" or "Android"
+- `(?<version>...)` - Should capture the semantic version number
+
