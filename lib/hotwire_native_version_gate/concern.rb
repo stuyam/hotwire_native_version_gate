@@ -25,17 +25,17 @@ module HotwireNativeVersionGate
     end
 
     def native_feature_enabled?(feature)
-      user_agent = respond_to?(:request) && request&.user_agent
+      user_agent = respond_to?(:request) && request.respond_to?(:user_agent) ? request.user_agent : nil
       VersionGate.feature_enabled?(feature, user_agent, context: self)
     end
 
     def hotwire_native_ios?
-      user_agent = respond_to?(:request) && request&.user_agent
+      user_agent = respond_to?(:request) && request.respond_to?(:user_agent) ? request.user_agent : nil
       VersionGate.ios?(user_agent)
     end
 
     def hotwire_native_android?
-      user_agent = respond_to?(:request) && request&.user_agent
+      user_agent = respond_to?(:request) && request.respond_to?(:user_agent) ? request.user_agent : nil
       VersionGate.android?(user_agent)
     end
   end
