@@ -5,6 +5,11 @@
 
 Easy version gating for Hotwire Native Apps in Rails. Allows you to specify features that you want turned on or off based on whether the request is from iOS, Android, and their app versions.
 
+> **⚠️ This gem is pre-1.0.**
+>
+> The API and feature set may change in future releases. Please use with caution, and open issues if you hit trouble.
+
+
 ### How it works
 
 App version information is appended to the app's User Agent so the backend can feature gate based on that information.
@@ -21,7 +26,7 @@ end
 
 # app/views/test/index.html.erb
 ...
-<% if native_feature_enabled?(:html_tabs) %>
+<% if native_feature?(:html_tabs) %>
   <div>HTML built tabs</div>
 <% end %>
 ...
@@ -64,7 +69,7 @@ end
 
 **Step 5**: Call the helper method in your controllers or views to check if the feature is enabled:
 ```erb
-<% if native_feature_enabled?(:html_tabs) %>
+<% if native_feature?(:html_tabs) %>
   <div>HTML built tabs</div>
 <% end %>
 ```
@@ -74,16 +79,30 @@ end
 In addition to feature gating, you can also check if a request is from iOS or Android without defining features:
 
 ```erb
-<% if hotwire_native_ios? %>
+<% if native_ios? %>
   <div>iOS-specific content</div>
 <% end %>
 
-<% if hotwire_native_android? %>
+<% if native_android? %>
   <div>Android-specific content</div>
 <% end %>
 ```
 
 These helpers work directly with the user agent and don't require any feature definitions. They return `true` if the request is from the respective platform, and `false` otherwise.
+
+You can also optionally pass a minimum version string to check if the request is from a specific platform version or higher:
+
+```erb
+<% if native_ios?('1.2.3') %>
+  <div>iOS 1.2.3+ specific content</div>
+<% end %>
+
+<% if native_android?('2.0.0') %>
+  <div>Android 2.0.0+ specific content</div>
+<% end %>
+```
+
+When a version is provided, the helper returns `true` only if the request is from the specified platform AND the app version is greater than or equal to the provided version. If no version information is available in the user agent, these version checks will return `false`.
 
 ### Options
 #### `native_feature` method options
@@ -129,7 +148,7 @@ end
 
 The method referenced by the symbol (e.g., `should_enable_ios_beta?`) should be defined in your controller and return `true` or `false`. The method will be called in the context of the controller instance, giving you access to instance variables and other controller methods.
 
-Once defined, you can use `native_feature_enabled?(:feature_name)` anywhere the concern is included (e.g., controllers or views) to conditionally render content based on the requesting app's platform and version.
+Once defined, you can use `native_feature?(:feature_name)` anywhere the concern is included (e.g., controllers or views) to conditionally render content based on the requesting app's platform and version.
 
 #### Customizing the User Agent regex
 

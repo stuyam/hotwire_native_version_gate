@@ -194,6 +194,89 @@ RSpec.describe HotwireNativeVersionGate do
         end
       end
 
+      context "with symbol-based feature configuration" do
+        let(:context_object) do
+          Class.new do
+            def check_feature_enabled
+              true
+            end
+
+            def check_feature_disabled
+              false
+            end
+
+            def check_version_based
+              "1.2.0"
+            end
+          end.new
+        end
+
+        before do
+          HotwireNativeVersionGate::VersionGate.native_feature(:symbol_feature, ios: :check_feature_enabled, android: :check_feature_disabled)
+        end
+
+        it "calls the method on the context object when provided" do
+          user_agent = "Hotwire Native App iOS/1.0.0"
+          expect(context_object).to receive(:check_feature_enabled).and_return(true)
+          result = HotwireNativeVersionGate::VersionGate.feature_enabled?(:symbol_feature, user_agent, context: context_object)
+          expect(result).to be true
+        end
+
+        it "calls different methods for different platforms" do
+          ios_agent = "Hotwire Native App iOS/1.0.0"
+          android_agent = "Hotwire Native App Android/1.0.0"
+
+          expect(context_object).to receive(:check_feature_enabled).and_return(true)
+          ios_result = HotwireNativeVersionGate::VersionGate.feature_enabled?(:symbol_feature, ios_agent, context: context_object)
+          expect(ios_result).to be true
+
+          expect(context_object).to receive(:check_feature_disabled).and_return(false)
+          android_result = HotwireNativeVersionGate::VersionGate.feature_enabled?(:symbol_feature, android_agent, context: context_object)
+          expect(android_result).to be false
+        end
+
+        it "calls the method on VersionGate when no context is provided" do
+          user_agent = "Hotwire Native App iOS/1.0.0"
+          HotwireNativeVersionGate::VersionGate.native_feature(:self_feature, ios: :check_feature_enabled)
+
+          # Define the method on VersionGate
+          HotwireNativeVersionGate::VersionGate.define_singleton_method(:check_feature_enabled) { true }
+
+          result = HotwireNativeVersionGate::VersionGate.feature_enabled?(:self_feature, user_agent)
+          expect(result).to be true
+
+          # Clean up
+          HotwireNativeVersionGate::VersionGate.singleton_class.remove_method(:check_feature_enabled)
+        end
+
+        it "calls the method on VersionGate when context is nil" do
+          user_agent = "Hotwire Native App iOS/1.0.0"
+          HotwireNativeVersionGate::VersionGate.native_feature(:nil_context_feature, ios: :check_feature_enabled)
+
+          # Define the method on VersionGate
+          HotwireNativeVersionGate::VersionGate.define_singleton_method(:check_feature_enabled) { true }
+
+          result = HotwireNativeVersionGate::VersionGate.feature_enabled?(:nil_context_feature, user_agent, context: nil)
+          expect(result).to be true
+
+          # Clean up
+          HotwireNativeVersionGate::VersionGate.singleton_class.remove_method(:check_feature_enabled)
+        end
+      end
+
+      context "with invalid feature configuration" do
+        before do
+          HotwireNativeVersionGate::VersionGate.native_feature(:invalid_feature, ios: 123, android: true)
+        end
+
+        it "raises InvalidVersionGateError for invalid configuration types" do
+          user_agent = "Hotwire Native App iOS/1.0.0"
+          expect {
+            HotwireNativeVersionGate::VersionGate.feature_enabled?(:invalid_feature, user_agent)
+          }.to raise_error(HotwireNativeVersionGate::InvalidVersionGateError, /Invalid version gate: 123/)
+        end
+      end
+
       context "with custom regex" do
         before do
           HotwireNativeVersionGate::VersionGate.native_version_regexes = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
@@ -261,6 +344,21 @@ RSpec.describe HotwireNativeVersionGate do
         expect(HotwireNativeVersionGate::VersionGate.ios?("Hotwire Native App Android/1.0.0")).to be false
         expect(HotwireNativeVersionGate::VersionGate.ios?(nil)).to be false
       end
+
+      context "with version requirement" do
+        it "returns true when app version meets minimum requirement" do
+          expect(HotwireNativeVersionGate::VersionGate.ios?("Hotwire Native App iOS/1.2.0", "1.2.0")).to be true
+          expect(HotwireNativeVersionGate::VersionGate.ios?("Hotwire Native App iOS/1.3.0", "1.2.0")).to be true
+        end
+
+        it "returns false when app version is below minimum requirement" do
+          expect(HotwireNativeVersionGate::VersionGate.ios?("Hotwire Native App iOS/1.1.0", "1.2.0")).to be false
+        end
+
+        it "returns false when user agent has no version" do
+          expect(HotwireNativeVersionGate::VersionGate.ios?("Hotwire Native iOS;", "1.2.0")).to be false
+        end
+      end
     end
 
     describe ".android?" do
@@ -272,6 +370,21 @@ RSpec.describe HotwireNativeVersionGate do
       it "returns false for iOS or non-native user agent" do
         expect(HotwireNativeVersionGate::VersionGate.android?("Hotwire Native App iOS/1.0.0")).to be false
         expect(HotwireNativeVersionGate::VersionGate.android?(nil)).to be false
+      end
+
+      context "with version requirement" do
+        it "returns true when app version meets minimum requirement" do
+          expect(HotwireNativeVersionGate::VersionGate.android?("Hotwire Native App Android/2.0.0", "2.0.0")).to be true
+          expect(HotwireNativeVersionGate::VersionGate.android?("Hotwire Native App Android/2.1.0", "2.0.0")).to be true
+        end
+
+        it "returns false when app version is below minimum requirement" do
+          expect(HotwireNativeVersionGate::VersionGate.android?("Hotwire Native App Android/1.9.0", "2.0.0")).to be false
+        end
+
+        it "returns false when user agent has no version" do
+          expect(HotwireNativeVersionGate::VersionGate.android?("Hotwire Native Android;", "2.0.0")).to be false
+        end
       end
     end
   end
@@ -336,24 +449,24 @@ RSpec.describe HotwireNativeVersionGate do
       end
     end
 
-    describe "#native_feature_enabled?" do
+    describe "#native_feature?" do
       before do
         controller_class.native_feature(:test_feature, ios: true, android: true)
         controller.user_agent_string = "Hotwire Native App iOS/1.0.0"
       end
 
       it "returns true when feature is enabled" do
-        expect(controller.native_feature_enabled?(:test_feature)).to be true
+        expect(controller.native_feature?(:test_feature)).to be true
       end
 
       it "returns false when feature is disabled" do
         controller_class.native_feature(:disabled_feature, ios: false, android: false)
-        expect(controller.native_feature_enabled?(:disabled_feature)).to be false
+        expect(controller.native_feature?(:disabled_feature)).to be false
       end
 
       it "handles nil user agent gracefully" do
         controller.user_agent_string = nil
-        expect(controller.native_feature_enabled?(:test_feature)).to be false
+        expect(controller.native_feature?(:test_feature)).to be false
       end
 
       it "handles missing request method gracefully" do
@@ -362,51 +475,118 @@ RSpec.describe HotwireNativeVersionGate do
         end.new
 
         controller_class.native_feature(:test_feature, ios: true, android: true)
-        expect(controller_without_request.native_feature_enabled?(:test_feature)).to be false
+        expect(controller_without_request.native_feature?(:test_feature)).to be false
+      end
+
+      context "with symbol-based feature configuration" do
+        let(:controller_with_methods) do
+          mock_req_class = mock_request_class
+          Class.new do
+            include HotwireNativeVersionGate::Concern
+
+            define_method(:request) do
+              @request ||= mock_req_class.new(user_agent_string)
+            end
+
+            attr_accessor :user_agent_string
+
+            def check_feature_enabled
+              true
+            end
+
+            def check_feature_disabled
+              false
+            end
+          end.new
+        end
+
+        before do
+          controller_with_methods.user_agent_string = "Hotwire Native App iOS/1.0.0"
+          controller_class.native_feature(:symbol_feature, ios: :check_feature_enabled, android: :check_feature_disabled)
+        end
+
+        it "calls the method on the controller instance" do
+          expect(controller_with_methods).to receive(:check_feature_enabled).and_return(true)
+          result = controller_with_methods.native_feature?(:symbol_feature)
+          expect(result).to be true
+        end
+
+        it "calls different methods for different platforms" do
+          controller_with_methods.user_agent_string = "Hotwire Native App Android/1.0.0"
+          expect(controller_with_methods).to receive(:check_feature_disabled).and_return(false)
+          result = controller_with_methods.native_feature?(:symbol_feature)
+          expect(result).to be false
+        end
       end
     end
 
-    describe "#hotwire_native_ios?" do
+    describe "#native_ios?" do
       it "returns true for iOS user agent" do
         controller.user_agent_string = "Hotwire Native App iOS/1.0.0"
-        expect(controller.hotwire_native_ios?).to be true
+        expect(controller.native_ios?).to be true
       end
 
       it "returns false for Android user agent" do
         controller.user_agent_string = "Hotwire Native App Android/1.0.0"
-        expect(controller.hotwire_native_ios?).to be false
+        expect(controller.native_ios?).to be false
       end
 
       it "handles nil user agent and missing request method gracefully" do
         controller.user_agent_string = nil
-        expect(controller.hotwire_native_ios?).to be false
+        expect(controller.native_ios?).to be false
 
         controller_without_request = Class.new do
           include HotwireNativeVersionGate::Concern
         end.new
-        expect(controller_without_request.hotwire_native_ios?).to be false
+        expect(controller_without_request.native_ios?).to be false
+      end
+
+      context "with version requirement" do
+        it "returns true when app version meets minimum requirement" do
+          controller.user_agent_string = "Hotwire Native App iOS/1.2.0"
+          expect(controller.native_ios?("1.2.0")).to be true
+          expect(controller.native_ios?("1.1.0")).to be true
+        end
+
+        it "returns false when app version is below minimum requirement" do
+          controller.user_agent_string = "Hotwire Native App iOS/1.1.0"
+          expect(controller.native_ios?("1.2.0")).to be false
+        end
       end
     end
 
-    describe "#hotwire_native_android?" do
+    describe "#native_android?" do
       it "returns true for Android user agent" do
         controller.user_agent_string = "Hotwire Native App Android/1.0.0"
-        expect(controller.hotwire_native_android?).to be true
+        expect(controller.native_android?).to be true
       end
 
       it "returns false for iOS user agent" do
         controller.user_agent_string = "Hotwire Native App iOS/1.0.0"
-        expect(controller.hotwire_native_android?).to be false
+        expect(controller.native_android?).to be false
       end
 
       it "handles nil user agent and missing request method gracefully" do
         controller.user_agent_string = nil
-        expect(controller.hotwire_native_android?).to be false
+        expect(controller.native_android?).to be false
 
         controller_without_request = Class.new do
           include HotwireNativeVersionGate::Concern
         end.new
-        expect(controller_without_request.hotwire_native_android?).to be false
+        expect(controller_without_request.native_android?).to be false
+      end
+
+      context "with version requirement" do
+        it "returns true when app version meets minimum requirement" do
+          controller.user_agent_string = "Hotwire Native App Android/2.0.0"
+          expect(controller.native_android?("2.0.0")).to be true
+          expect(controller.native_android?("1.9.0")).to be true
+        end
+
+        it "returns false when app version is below minimum requirement" do
+          controller.user_agent_string = "Hotwire Native App Android/1.9.0"
+          expect(controller.native_android?("2.0.0")).to be false
+        end
       end
     end
 
@@ -426,7 +606,7 @@ RSpec.describe HotwireNativeVersionGate do
         end
 
         controller_class.include(HotwireNativeVersionGate::Concern)
-        expect(helper_methods_called).to include(:native_feature_enabled?, :hotwire_native_ios?, :hotwire_native_android?)
+        expect(helper_methods_called).to include(:native_feature?, :native_ios?, :native_android?)
       end
 
       it "does not call helper_method when it's not available" do

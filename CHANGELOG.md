@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Now you can pass a min version to `native_ios?('1.2.3')` and `native_android?('1.2.3)` optionally to do a manual version check without a feature.
+
+### Changed
+- Renamed `native_feature_enabled?` to `native_feature?`
+- Renamed `hotwire_native_ios?` and `hotwire_native_android?` to `native_ios?` and `native_android?` respectively.
+
+
 ## [0.3.0] - 2025-11-18
 
 ### Added
