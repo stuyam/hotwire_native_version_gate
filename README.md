@@ -32,7 +32,7 @@ class ApplicationController < ActionController::Base
 end
 ```
 
-**Step 4**: Add features:
+**Step 4**: Define features:
 ```ruby
 class ApplicationController < ActionController::Base
   include HotwireNativeVersionGate::Concern
