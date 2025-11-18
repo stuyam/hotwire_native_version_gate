@@ -36,6 +36,16 @@ module HotwireNativeVersionGate
         handle_feature(feature_config, user_agent, context: context)
       end
 
+      def ios?(user_agent)
+        platform = match_platform(user_agent)
+        platform&.downcase == 'ios'
+      end
+
+      def android?(user_agent)
+        platform = match_platform(user_agent)
+        platform&.downcase == 'android'
+      end
+
       private
 
       def validate_regexes(regexes)

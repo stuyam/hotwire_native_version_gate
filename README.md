@@ -69,6 +69,22 @@ end
 <% end %>
 ```
 
+### Platform Detection Helpers
+
+In addition to feature gating, you can also check if a request is from iOS or Android without defining features:
+
+```erb
+<% if hotwire_native_ios? %>
+  <div>iOS-specific content</div>
+<% end %>
+
+<% if hotwire_native_android? %>
+  <div>Android-specific content</div>
+<% end %>
+```
+
+These helpers work directly with the user agent and don't require any feature definitions. They return `true` if the request is from the respective platform, and `false` otherwise.
+
 ### Options
 #### `native_feature` method options
 
