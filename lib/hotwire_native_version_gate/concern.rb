@@ -27,7 +27,7 @@ module HotwireNativeVersionGate
         nil
       end
 
-      VersionGate.feature_enabled?(feature, user_agent)
+      VersionGate.feature_enabled?(feature, user_agent, context: self)
     end
   end
 end

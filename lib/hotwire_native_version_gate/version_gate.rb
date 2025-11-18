@@ -24,7 +24,7 @@ module HotwireNativeVersionGate
         @native_features[feature] = { ios: ios, android: android }
       end
 
-      def feature_enabled?(feature, user_agent)
+      def feature_enabled?(feature, user_agent, context: nil)
         @native_features ||= {}
         return false unless @native_features.key?(feature)
 
@@ -33,7 +33,7 @@ module HotwireNativeVersionGate
 
         platform_key = platform.downcase.to_sym
         feature_config = @native_features[feature][platform_key]
-        handle_feature(feature_config, user_agent)
+        handle_feature(feature_config, user_agent, context: context)
       end
 
       private
@@ -44,7 +44,7 @@ module HotwireNativeVersionGate
         nil
       end
 
-      def handle_feature(feature_config, user_agent)
+      def handle_feature(feature_config, user_agent, context: nil)
         # if false or nil, return false
         return false unless feature_config
         # if true, return true
@@ -55,8 +55,14 @@ module HotwireNativeVersionGate
           return false unless match
           return Gem::Version.new(feature_config) <= Gem::Version.new(match[:version])
         end
-        # if a symbol, call the method
-        return send(feature_config, user_agent) if feature_config.is_a?(Symbol)
+        # if a symbol, call the method on the context (if provided) or self
+        if feature_config.is_a?(Symbol)
+          if context
+            return context.send(feature_config)
+          else
+            return send(feature_config)
+          end
+        end
         # else, raise an error
         raise InvalidVersionGateError, "Invalid version gate: #{feature_config}"
       end
