@@ -1,5 +1,8 @@
 # Hotwire Native Version Gate
 
+[![Gem](https://img.shields.io/gem/v/hotwire_native_version_gate.svg)](https://rubygems.org/gems/hotwire_native_version_gate)
+[![Gem](https://img.shields.io/gem/dt/hotwire_native_version_gate.svg)](https://rubygems.org/gems/hotwire_native_version_gate)
+
 Easy version gating for Hotwire Native Apps in Rails. Allows you to specify features that you want turned on or off based on whether the request is from iOS, Android, and their app versions.
 
 ### How it works
