@@ -2,59 +2,59 @@
 
 require "spec_helper"
 
-RSpec.describe HotwireNativeVersionGates do
+RSpec.describe HotwireNativeVersionGate do
   it "has a version number" do
-    expect(HotwireNativeVersionGates::VERSION).not_to be nil
+    expect(HotwireNativeVersionGate::VERSION).not_to be nil
   end
 
-  describe HotwireNativeVersionGates::VersionGate do
+  describe HotwireNativeVersionGate::VersionGate do
     before do
       # Reset state between tests
-      HotwireNativeVersionGates::VersionGate.instance_variable_set(:@native_features, {})
-      HotwireNativeVersionGates::VersionGate.instance_variable_set(
+      HotwireNativeVersionGate::VersionGate.instance_variable_set(:@native_features, {})
+      HotwireNativeVersionGate::VersionGate.instance_variable_set(
         :@native_version_regex,
-        HotwireNativeVersionGates::VersionGate::DEFAULT_NATIVE_VERSION_REGEX
+        HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX
       )
     end
 
     describe ".native_version_regex" do
       it "has a default regex" do
-        regex = HotwireNativeVersionGates::VersionGate.native_version_regex
-        expect(regex).to eq(HotwireNativeVersionGates::VersionGate::DEFAULT_NATIVE_VERSION_REGEX)
+        regex = HotwireNativeVersionGate::VersionGate.native_version_regex
+        expect(regex).to eq(HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX)
       end
 
       it "can be customized" do
         custom_regex = /MyApp (iOS|Android)\/(\d+\.\d+\.\d+)/
-        HotwireNativeVersionGates::VersionGate.native_version_regex = custom_regex
-        expect(HotwireNativeVersionGates::VersionGate.native_version_regex).to eq(custom_regex)
+        HotwireNativeVersionGate::VersionGate.native_version_regex = custom_regex
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regex).to eq(custom_regex)
       end
 
       it "raises ArgumentError if set to non-Regexp" do
         expect {
-          HotwireNativeVersionGates::VersionGate.native_version_regex = "not a regex"
+          HotwireNativeVersionGate::VersionGate.native_version_regex = "not a regex"
         }.to raise_error(ArgumentError, "native_version_regex must be a Regexp")
       end
     end
 
     describe ".native_feature" do
       it "registers a feature with iOS and Android flags" do
-        HotwireNativeVersionGates::VersionGate.native_feature(:new_feature, ios: true, android: false)
-        features = HotwireNativeVersionGates::VersionGate.native_features
+        HotwireNativeVersionGate::VersionGate.native_feature(:new_feature, ios: true, android: false)
+        features = HotwireNativeVersionGate::VersionGate.native_features
         expect(features[:new_feature]).to eq({ ios: true, android: false })
       end
 
       it "allows multiple features to be registered" do
-        HotwireNativeVersionGates::VersionGate.native_feature(:feature1, ios: true, android: true)
-        HotwireNativeVersionGates::VersionGate.native_feature(:feature2, ios: false, android: true)
+        HotwireNativeVersionGate::VersionGate.native_feature(:feature1, ios: true, android: true)
+        HotwireNativeVersionGate::VersionGate.native_feature(:feature2, ios: false, android: true)
 
-        features = HotwireNativeVersionGates::VersionGate.native_features
+        features = HotwireNativeVersionGate::VersionGate.native_features
         expect(features[:feature1]).to eq({ ios: true, android: true })
         expect(features[:feature2]).to eq({ ios: false, android: true })
       end
 
       it "allows version strings as requirements" do
-        HotwireNativeVersionGates::VersionGate.native_feature(:versioned_feature, ios: "1.2.0", android: "2.0.0")
-        features = HotwireNativeVersionGates::VersionGate.native_features
+        HotwireNativeVersionGate::VersionGate.native_feature(:versioned_feature, ios: "1.2.0", android: "2.0.0")
+        features = HotwireNativeVersionGate::VersionGate.native_features
         expect(features[:versioned_feature]).to eq({ ios: "1.2.0", android: "2.0.0" })
       end
     end
@@ -66,75 +66,75 @@ RSpec.describe HotwireNativeVersionGates do
 
       context "when feature is not registered" do
         it "returns false" do
-          result = HotwireNativeVersionGates::VersionGate.feature_enabled?(:unknown_feature, ios_user_agent)
+          result = HotwireNativeVersionGate::VersionGate.feature_enabled?(:unknown_feature, ios_user_agent)
           expect(result).to be false
         end
       end
 
       context "when user agent doesn't match regex" do
         before do
-          HotwireNativeVersionGates::VersionGate.native_feature(:test_feature, ios: true, android: true)
+          HotwireNativeVersionGate::VersionGate.native_feature(:test_feature, ios: true, android: true)
         end
 
         it "returns false" do
-          result = HotwireNativeVersionGates::VersionGate.feature_enabled?(:test_feature, invalid_user_agent)
+          result = HotwireNativeVersionGate::VersionGate.feature_enabled?(:test_feature, invalid_user_agent)
           expect(result).to be false
         end
       end
 
       context "with boolean flags" do
         before do
-          HotwireNativeVersionGates::VersionGate.native_feature(:enabled_feature, ios: true, android: true)
-          HotwireNativeVersionGates::VersionGate.native_feature(:disabled_feature, ios: false, android: false)
-          HotwireNativeVersionGates::VersionGate.native_feature(:ios_only, ios: true, android: false)
-          HotwireNativeVersionGates::VersionGate.native_feature(:android_only, ios: false, android: true)
+          HotwireNativeVersionGate::VersionGate.native_feature(:enabled_feature, ios: true, android: true)
+          HotwireNativeVersionGate::VersionGate.native_feature(:disabled_feature, ios: false, android: false)
+          HotwireNativeVersionGate::VersionGate.native_feature(:ios_only, ios: true, android: false)
+          HotwireNativeVersionGate::VersionGate.native_feature(:android_only, ios: false, android: true)
         end
 
         it "returns true when feature is enabled for platform" do
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:enabled_feature, ios_user_agent)).to be true
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:enabled_feature, android_user_agent)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:enabled_feature, ios_user_agent)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:enabled_feature, android_user_agent)).to be true
         end
 
         it "returns false when feature is disabled for platform" do
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:disabled_feature, ios_user_agent)).to be false
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:disabled_feature, android_user_agent)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:disabled_feature, ios_user_agent)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:disabled_feature, android_user_agent)).to be false
         end
 
         it "returns true for iOS-only feature on iOS" do
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:ios_only, ios_user_agent)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:ios_only, ios_user_agent)).to be true
         end
 
         it "returns false for iOS-only feature on Android" do
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:ios_only, android_user_agent)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:ios_only, android_user_agent)).to be false
         end
 
         it "returns true for Android-only feature on Android" do
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:android_only, android_user_agent)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:android_only, android_user_agent)).to be true
         end
 
         it "returns false for Android-only feature on iOS" do
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:android_only, ios_user_agent)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:android_only, ios_user_agent)).to be false
         end
       end
 
       context "with version string requirements" do
         before do
-          HotwireNativeVersionGates::VersionGate.native_feature(:versioned_feature, ios: "1.2.0", android: "2.0.0")
+          HotwireNativeVersionGate::VersionGate.native_feature(:versioned_feature, ios: "1.2.0", android: "2.0.0")
         end
 
         it "returns true when app version meets minimum requirement" do
           user_agent = "Hotwire Native App iOS/1.2.0"
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:versioned_feature, user_agent)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, user_agent)).to be true
         end
 
         it "returns true when app version exceeds minimum requirement" do
           user_agent = "Hotwire Native App iOS/1.3.0"
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:versioned_feature, user_agent)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, user_agent)).to be true
         end
 
         it "returns false when app version is below minimum requirement" do
           user_agent = "Hotwire Native App iOS/1.1.0"
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:versioned_feature, user_agent)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, user_agent)).to be false
         end
 
         it "handles different version requirements for different platforms" do
@@ -143,36 +143,36 @@ RSpec.describe HotwireNativeVersionGates do
           android_old = "Hotwire Native App Android/1.0.0"
           android_new = "Hotwire Native App Android/2.0.0"
 
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:versioned_feature, ios_old)).to be false
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:versioned_feature, ios_new)).to be true
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:versioned_feature, android_old)).to be false
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:versioned_feature, android_new)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, ios_old)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, ios_new)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, android_old)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, android_new)).to be true
         end
       end
 
       context "with custom regex" do
         before do
-          HotwireNativeVersionGates::VersionGate.native_version_regex = /MyApp (iOS|Android)\/(\d+\.\d+\.\d+)/
-          HotwireNativeVersionGates::VersionGate.native_feature(:custom_feature, ios: true, android: true)
+          HotwireNativeVersionGate::VersionGate.native_version_regex = /MyApp (iOS|Android)\/(\d+\.\d+\.\d+)/
+          HotwireNativeVersionGate::VersionGate.native_feature(:custom_feature, ios: true, android: true)
         end
 
         it "works with custom user agent format" do
           user_agent = "MyApp iOS/1.0.0"
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:custom_feature, user_agent)).to be true
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:custom_feature, user_agent)).to be true
         end
 
         it "doesn't match default format with custom regex" do
           user_agent = "Hotwire Native App iOS/1.0.0"
-          expect(HotwireNativeVersionGates::VersionGate.feature_enabled?(:custom_feature, user_agent)).to be false
+          expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:custom_feature, user_agent)).to be false
         end
       end
     end
   end
 
-  describe HotwireNativeVersionGates::Concern do
+  describe HotwireNativeVersionGate::Concern do
     let(:controller_class) do
       Class.new do
-        include HotwireNativeVersionGates::Concern
+        include HotwireNativeVersionGate::Concern
 
         def request
           @request ||= double("Request", user_agent: user_agent_string)
@@ -186,17 +186,17 @@ RSpec.describe HotwireNativeVersionGates do
 
     before do
       # Reset state
-      HotwireNativeVersionGates::VersionGate.instance_variable_set(:@native_features, {})
-      HotwireNativeVersionGates::VersionGate.instance_variable_set(
+      HotwireNativeVersionGate::VersionGate.instance_variable_set(:@native_features, {})
+      HotwireNativeVersionGate::VersionGate.instance_variable_set(
         :@native_version_regex,
-        HotwireNativeVersionGates::VersionGate::DEFAULT_NATIVE_VERSION_REGEX
+        HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX
       )
     end
 
     describe ".native_feature" do
       it "delegates to VersionGate" do
         controller_class.native_feature(:test_feature, ios: true, android: false)
-        features = HotwireNativeVersionGates::VersionGate.native_features
+        features = HotwireNativeVersionGate::VersionGate.native_features
         expect(features[:test_feature]).to eq({ ios: true, android: false })
       end
     end
@@ -205,7 +205,7 @@ RSpec.describe HotwireNativeVersionGates do
       it "delegates to VersionGate" do
         custom_regex = /Custom (iOS|Android)\/(\d+\.\d+\.\d+)/
         controller_class.native_version_regex = custom_regex
-        expect(HotwireNativeVersionGates::VersionGate.native_version_regex).to eq(custom_regex)
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regex).to eq(custom_regex)
       end
     end
 
@@ -231,7 +231,7 @@ RSpec.describe HotwireNativeVersionGates do
 
       it "handles missing request method gracefully" do
         controller_without_request = Class.new do
-          include HotwireNativeVersionGates::Concern
+          include HotwireNativeVersionGate::Concern
         end.new
 
         controller_class.native_feature(:test_feature, ios: true, android: true)
@@ -253,7 +253,7 @@ RSpec.describe HotwireNativeVersionGates do
           end
         end
 
-        controller_class.include(HotwireNativeVersionGates::Concern)
+        controller_class.include(HotwireNativeVersionGate::Concern)
         expect(helper_methods_called).to include(:native_feature_enabled?)
       end
 
@@ -264,7 +264,7 @@ RSpec.describe HotwireNativeVersionGates do
           end
         end
 
-        expect { controller_class.include(HotwireNativeVersionGates::Concern) }.not_to raise_error
+        expect { controller_class.include(HotwireNativeVersionGate::Concern) }.not_to raise_error
       end
     end
   end

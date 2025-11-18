@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module HotwireNativeVersionGates
+module HotwireNativeVersionGate
   module Concern
     extend ActiveSupport::Concern
 

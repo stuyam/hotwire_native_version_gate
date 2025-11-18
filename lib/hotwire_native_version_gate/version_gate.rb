@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module HotwireNativeVersionGates
+module HotwireNativeVersionGate
   class VersionGate
     # Default regex example: Hotwire Native App iOS/1.0.0;
     # Expected capture groups: platform = (iOS|Android), version = semantic version
