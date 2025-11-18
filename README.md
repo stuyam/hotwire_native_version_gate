@@ -16,7 +16,7 @@ class ApplicationController < ActionController::Base
   # Enable a feature on iOS `1.2.0`+ and Android `1.1.0`+:
   native_feature :html_tabs, ios: '1.2.0', android: '1.1.0'
   # Enable a feature only for iOS (version `2.0.0`+):
-  native_feature :new_drawer_ui, android: '2.0.0'
+  native_feature :new_drawer_ui, ios: '2.0.0'
 end
 
 # app/views/test/index.html.erb
