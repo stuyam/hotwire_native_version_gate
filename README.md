@@ -7,7 +7,7 @@ Easy version gating for Hotwire Native Apps in Rails. Allows you to specify feat
 App version information is appended to the app's User Agent so the backend can feature gate based on that information.
 
 ### Setup
-Step 1: Configure your iOS and/or Android app to prepend version information to the User Agent:
+**Step 1**: Configure your iOS and/or Android app to prepend version information to the User Agent:
 ```swift
 // iOS (swift)
 if let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
@@ -20,19 +20,19 @@ val appVersion = packageManager.getPackageInfo(packageName, 0).versionName
 Hotwire.config.applicationUserAgentPrefix = "Hotwire Native App Android/$appVersion;"
 ```
 
-Step 2: Install the gem in your Rails app:
+**Step 2**: Install the gem in your Rails app:
 ```
 bundle add hotwire_native_version_gate
 ```
 
-Step 3: Include the concern in your ApplicationController. Note: If you have a lot of features defined, it might be a good idea to include it in its own concern to avoid crowding your ApplicationController:
+**Step 3**: Include the concern in your ApplicationController. Note: If you have a lot of features defined, it might be a good idea to include it in its own concern to avoid crowding your ApplicationController:
 ```ruby
 class ApplicationController < ActionController::Base
   include HotwireNativeVersionGate::Concern
 end
 ```
 
-Step 4: Add features:
+**Step 4**: Add features:
 ```ruby
 class ApplicationController < ActionController::Base
   include HotwireNativeVersionGate::Concern
@@ -40,7 +40,7 @@ class ApplicationController < ActionController::Base
 end
 ```
 
-Step 5: Call the helper method in your controllers or views to check if the feature is enabled:
+**Step 5**: Call the helper method in your controllers or views to check if the feature is enabled:
 ```erb
 <% if native_feature_enabled?(:html_tabs) %>
   <div>HTML built tabs</div>
