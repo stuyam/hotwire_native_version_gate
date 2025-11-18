@@ -23,7 +23,7 @@ Step 2: Install the gem in your Rails app:
 bundle add hotwire_native_version_gate
 ```
 
-Step 3: Include the concern in your ApplicationController. You can also include it in it's own concern if you for example have a lot of features and don't want to crowd your ApplicaitonController:
+Step 3: Include the concern in your ApplicationController. Note: If you have a lot of features defined, it might be a good idea to include it in it's own concern as not to crowd your ApplicaitonController:
 ```ruby
 class ApplicationController < ActionController::Base
   include HotwireNativeVersionGate::Concern
@@ -58,28 +58,20 @@ The `native_feature` method allows you to specify feature flags that are enabled
   - Set to `false` (or omit) to disable on all iOS.
 
 #### Examples
-Enable a feature on iOS `1.2.0`+ and Android `1.1.0`+:
 ```ruby
+# Enable a feature on iOS `1.2.0`+ and Android `1.1.0`+:
 native_feature :html_tabs, ios: '1.2.0', android: '1.1.0'
-```
 
-Enable a feature only for Android (version `2.0.0`+):
-```ruby
+# Enable a feature only for Android (version `2.0.0`+):
 native_feature :new_drawer_ui, android: '2.0.0'
-```
 
-Enable a feature only for iOS (version `3.0.0`+):
-```ruby
+# Enable a feature only for iOS (version `3.0.0`+):
 native_feature :onboarding_refactor, ios: '3.0.0'
-```
 
-Enable for iOS but Disable for Android:
-```ruby
+# Enable for iOS but Disable for Android:
 native_feature :future_feature, ios: true, android: false # default is false
-```
 
-Enable a feature for iOS based on a symbol method on your controller:
-```ruby
+# Enable a feature for iOS based on a symbol method on your controller:
 native_feature :beta_feature, ios: :should_enable_ios_beta?
 
 def should_enable_ios_beta?
