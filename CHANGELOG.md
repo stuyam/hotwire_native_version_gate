@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for multiple regex patterns tried in order until one matches.
 - Fallback regex support for user agents without version numbers (e.g., `Hotwire Native iOS;`).
-- `prepend_native_version_regexes` method to prepend custom regexes while keeping defaults as fallback.
 - Support for boolean flags (`true`/`false`) with fallback regex for apps without version information.
 - Graceful handling of regexes that match but don't have optional capture groups (e.g., `version`).
+- `native_version_regexes` reader method to access current regex array for prepending custom regexes.
 
 ### Changed
 - `native_version_regex` renamed to `native_version_regexes` (plural) to support arrays.

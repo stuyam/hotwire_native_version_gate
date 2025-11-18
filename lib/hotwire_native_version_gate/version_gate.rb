@@ -19,12 +19,6 @@ module HotwireNativeVersionGate
         @native_version_regexes = regexes_array
       end
 
-      def prepend_native_version_regexes(regexes)
-        regexes_array = validate_regexes(regexes)
-        @native_version_regexes ||= []
-        @native_version_regexes = regexes_array + @native_version_regexes
-      end
-
       def native_feature(feature, ios: false, android: false)
         @native_features ||= {}
         @native_features[feature] = { ios: ios, android: android }

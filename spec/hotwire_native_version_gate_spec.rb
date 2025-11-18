@@ -51,32 +51,32 @@ RSpec.describe HotwireNativeVersionGate do
       end
     end
 
-    describe ".prepend_native_version_regexes" do
+    describe "prepending regexes using native_version_regexes reader" do
       it "prepends a single regex to the existing array" do
         default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
         custom_regex = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
-        HotwireNativeVersionGate::VersionGate.prepend_native_version_regexes(custom_regex)
+        HotwireNativeVersionGate::VersionGate.native_version_regexes.prepend(custom_regex)
         expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex] + default_regexes)
       end
 
-      it "prepends an array of regexes to the existing array" do
+      it "prepends multiple regexes to the existing array" do
         default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
         custom_regex1 = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
         custom_regex2 = /\bAnotherApp (?<platform>iOS|Android)\b/
-        HotwireNativeVersionGate::VersionGate.prepend_native_version_regexes([custom_regex1, custom_regex2])
-        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex1, custom_regex2] + default_regexes)
+        # prepend adds elements in the order passed, so custom_regex2 will be first, then custom_regex1
+        HotwireNativeVersionGate::VersionGate.native_version_regexes.prepend(custom_regex2, custom_regex1)
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex2, custom_regex1] + default_regexes)
       end
 
-      it "raises ArgumentError if set to non-Regexp" do
-        expect {
-          HotwireNativeVersionGate::VersionGate.prepend_native_version_regexes("not a regex")
-        }.to raise_error(ArgumentError, /native_version_regexes must be an array of Regexp objects/)
-      end
+      it "works when used in a controller context" do
+        controller_class = Class.new do
+          include HotwireNativeVersionGate::Concern
+        end
 
-      it "raises ArgumentError if array contains non-Regexp" do
-        expect {
-          HotwireNativeVersionGate::VersionGate.prepend_native_version_regexes([/\d+/, "not a regex"])
-        }.to raise_error(ArgumentError, /native_version_regexes must be an array of Regexp objects/)
+        default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
+        custom_regex = /\bCustomApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        controller_class.native_version_regexes.prepend(custom_regex)
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex] + default_regexes)
       end
     end
 
@@ -303,11 +303,11 @@ RSpec.describe HotwireNativeVersionGate do
       end
     end
 
-    describe ".prepend_native_version_regexes" do
-      it "delegates to VersionGate and prepends regexes" do
+    describe "prepending regexes using native_version_regexes reader" do
+      it "prepends regexes when used in controller context" do
         default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
         custom_regex = /\bCustom (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
-        controller_class.prepend_native_version_regexes(custom_regex)
+        controller_class.native_version_regexes.prepend(custom_regex)
         expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex] + default_regexes)
       end
     end
