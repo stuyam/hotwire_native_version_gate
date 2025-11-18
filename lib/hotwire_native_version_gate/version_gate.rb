@@ -36,14 +36,12 @@ module HotwireNativeVersionGate
         handle_feature(feature_config, user_agent, context: context)
       end
 
-      def ios?(user_agent)
-        platform = match_platform(user_agent)
-        platform&.downcase == 'ios'
+      def ios?(user_agent, min_version = nil)
+        platform_check?('ios', user_agent, min_version)
       end
 
-      def android?(user_agent)
-        platform = match_platform(user_agent)
-        platform&.downcase == 'android'
+      def android?(user_agent, min_version = nil)
+        platform_check?('android', user_agent, min_version)
       end
 
       private
@@ -69,8 +67,21 @@ module HotwireNativeVersionGate
         nil
       end
 
+      def platform_check?(platform, user_agent, min_version = nil)
+        return false unless match_platform(user_agent)&.downcase == platform
+        return true unless min_version
+        compare_version(user_agent, min_version)
+      end
+
       def match_platform(user_agent)
         match_key(user_agent, :platform)
+      end
+
+      def compare_version(user_agent, min_version)
+        version = match_key(user_agent, :version)
+        return false unless version
+
+        Gem::Version.new(version) >= Gem::Version.new(min_version)
       end
 
       def handle_feature(feature_config, user_agent, context: nil)
@@ -79,19 +90,11 @@ module HotwireNativeVersionGate
         # if true, return true
         return true if feature_config == true
         # if a string, compare the version
-        if feature_config.is_a?(String)
-          version = match_key(user_agent, :version)
-          return false unless version
-          return Gem::Version.new(feature_config) <= Gem::Version.new(version)
-        end
+        return compare_version(user_agent, feature_config) if feature_config.is_a?(String)
         # if a symbol, call the method on the context (if provided) or self
-        if feature_config.is_a?(Symbol)
-          if context
-            return context.send(feature_config)
-          else
-            return send(feature_config)
-          end
-        end
+        return context.send(feature_config) if feature_config.is_a?(Symbol) && context
+        return send(feature_config) if feature_config.is_a?(Symbol)
+
         # else, raise an error
         raise InvalidVersionGateError, "Invalid version gate: #{feature_config}"
       end
