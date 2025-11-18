@@ -9,6 +9,24 @@ Easy version gating for Hotwire Native Apps in Rails. Allows you to specify feat
 
 App version information is appended to the app's User Agent so the backend can feature gate based on that information.
 
+```ruby
+# app/controllers/application_controller.rb
+class ApplicationController < ActionController::Base
+  include HotwireNativeVersionGate::Concern
+  # Enable a feature on iOS `1.2.0`+ and Android `1.1.0`+:
+  native_feature :html_tabs, ios: '1.2.0', android: '1.1.0'
+  # Enable a feature only for iOS (version `2.0.0`+):
+  native_feature :new_drawer_ui, android: '2.0.0'
+end
+
+# app/views/test/index.html.erb
+...
+<% if native_feature_enabled?(:html_tabs) %>
+  <div>HTML built tabs</div>
+<% end %>
+...
+```
+
 ### Setup
 **Step 1**: Configure your iOS and/or Android app to prepend version information to the User Agent:
 ```swift
