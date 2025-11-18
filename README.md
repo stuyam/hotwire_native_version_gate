@@ -19,6 +19,7 @@ if let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as
 val appVersion = packageManager.getPackageInfo(packageName, 0).versionName
 Hotwire.config.applicationUserAgentPrefix = "Hotwire Native App Android/$appVersion;"
 ```
+Note: For older versions of you app that don't have the User Agent set yet `native_feature_enabled?` will always return `false`.
 
 **Step 2**: Install the gem in your Rails app:
 ```

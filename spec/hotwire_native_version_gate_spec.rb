@@ -152,7 +152,7 @@ RSpec.describe HotwireNativeVersionGate do
 
       context "with custom regex" do
         before do
-          HotwireNativeVersionGate::VersionGate.native_version_regex = /MyApp (iOS|Android)\/(\d+\.\d+\.\d+)/
+          HotwireNativeVersionGate::VersionGate.native_version_regex = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
           HotwireNativeVersionGate::VersionGate.native_feature(:custom_feature, ios: true, android: true)
         end
 
@@ -170,12 +170,23 @@ RSpec.describe HotwireNativeVersionGate do
   end
 
   describe HotwireNativeVersionGate::Concern do
+    let(:mock_request_class) do
+      Class.new do
+        attr_reader :user_agent
+
+        def initialize(user_agent)
+          @user_agent = user_agent
+        end
+      end
+    end
+
     let(:controller_class) do
+      mock_req_class = mock_request_class
       Class.new do
         include HotwireNativeVersionGate::Concern
 
-        def request
-          @request ||= double("Request", user_agent: user_agent_string)
+        define_method(:request) do
+          @request ||= mock_req_class.new(user_agent_string)
         end
 
         attr_accessor :user_agent_string
@@ -242,14 +253,15 @@ RSpec.describe HotwireNativeVersionGate do
     context "when helper_method is available" do
       it "calls helper_method when the concern is included" do
         helper_methods_called = []
+        mock_req_class = mock_request_class
 
         controller_class = Class.new do
-          def self.helper_method(method_name)
+          define_singleton_method(:helper_method) do |method_name|
             helper_methods_called << method_name
           end
 
-          def request
-            @request ||= double("Request", user_agent: "Hotwire Native App iOS/1.0.0")
+          define_method(:request) do
+            @request ||= mock_req_class.new("Hotwire Native App iOS/1.0.0")
           end
         end
 
@@ -258,9 +270,11 @@ RSpec.describe HotwireNativeVersionGate do
       end
 
       it "does not call helper_method when it's not available" do
+        mock_req_class = mock_request_class
+
         controller_class = Class.new do
-          def request
-            @request ||= double("Request", user_agent: "Hotwire Native App iOS/1.0.0")
+          define_method(:request) do
+            @request ||= mock_req_class.new("Hotwire Native App iOS/1.0.0")
           end
         end
 
