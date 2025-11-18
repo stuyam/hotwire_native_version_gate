@@ -65,25 +65,24 @@ The `native_feature` method allows you to specify feature flags that are enabled
 
 #### Examples
 ```ruby
-# Enable a feature on iOS `1.2.0`+ and Android `1.1.0`+:
-native_feature :html_tabs, ios: '1.2.0', android: '1.1.0'
+class ApplicationController < ActionController::Base
+  include HotwireNativeVersionGate::Concern
+  # Enable a feature on iOS `1.2.0`+ and Android `1.1.0`+:
+  native_feature :html_tabs, ios: '1.2.0', android: '1.1.0'
+  # Enable a feature only for Android (version `2.0.0`+):
+  native_feature :new_drawer_ui, android: '2.0.0'
+  # Enable a feature only for iOS (version `3.0.0`+):
+  native_feature :onboarding_refactor, ios: '3.0.0'
+  # Enable for iOS but disable for Android:
+  native_feature :future_feature, ios: true, android: false # default is false
+  # Enable a feature for iOS based on a method defined in your controller:
+  native_feature :beta_feature, ios: :should_enable_ios_beta?
 
-# Enable a feature only for Android (version `2.0.0`+):
-native_feature :new_drawer_ui, android: '2.0.0'
+  private
 
-# Enable a feature only for iOS (version `3.0.0`+):
-native_feature :onboarding_refactor, ios: '3.0.0'
-
-# Enable for iOS but disable for Android:
-native_feature :future_feature, ios: true, android: false # default is false
-
-# Enable a feature for iOS based on a method defined in your controller:
-native_feature :beta_feature, ios: :should_enable_ios_beta?
-
-private
-
-def should_enable_ios_beta?
-  ENV['BETA_ENABLED'] == 'true'
+  def should_enable_ios_beta?
+    ENV['BETA_ENABLED'] == 'true'
+  end
 end
 ```
 
