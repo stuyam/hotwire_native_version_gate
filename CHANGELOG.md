@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Support for multiple regex patterns tried in order until one matches.
+- Fallback regex support for user agents without version numbers (e.g., `Hotwire Native iOS;`).
+- Support for boolean flags (`true`/`false`) with fallback regex for apps without version information.
+- Graceful handling of regexes that match but don't have optional capture groups (e.g., `version`).
+- `native_version_regexes` reader method to access current regex array for prepending custom regexes.
+
+### Changed
+- `native_version_regex` renamed to `native_version_regexes` (plural) to support arrays.
+- Regex matching now tries multiple patterns in order, allowing fallback patterns for older app versions.
+- Version string requirements return `false` when user agent matches but has no version information.
+
 ## [0.1.0] - 2025-11-17
 
 ### Added

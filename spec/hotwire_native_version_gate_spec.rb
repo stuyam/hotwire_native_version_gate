@@ -12,27 +12,71 @@ RSpec.describe HotwireNativeVersionGate do
       # Reset state between tests
       HotwireNativeVersionGate::VersionGate.instance_variable_set(:@native_features, {})
       HotwireNativeVersionGate::VersionGate.instance_variable_set(
-        :@native_version_regex,
-        HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX
+        :@native_version_regexes,
+        [HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX, HotwireNativeVersionGate::VersionGate::FALLBACK_NATIVE_VERSION_REGEX]
       )
     end
 
-    describe ".native_version_regex" do
-      it "has a default regex" do
-        regex = HotwireNativeVersionGate::VersionGate.native_version_regex
-        expect(regex).to eq(HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX)
+    describe ".native_version_regexes" do
+      it "has default regexes" do
+        regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes
+        expect(regexes).to be_an(Array)
+        expect(regexes).to include(HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX)
+        expect(regexes).to include(HotwireNativeVersionGate::VersionGate::FALLBACK_NATIVE_VERSION_REGEX)
       end
 
-      it "can be customized" do
-        custom_regex = /MyApp (iOS|Android)\/(\d+\.\d+\.\d+)/
-        HotwireNativeVersionGate::VersionGate.native_version_regex = custom_regex
-        expect(HotwireNativeVersionGate::VersionGate.native_version_regex).to eq(custom_regex)
+      it "can be customized with a single regex" do
+        custom_regex = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        HotwireNativeVersionGate::VersionGate.native_version_regexes = custom_regex
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex])
+      end
+
+      it "can be customized with an array of regexes" do
+        custom_regex1 = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        custom_regex2 = /\bAnotherApp (?<platform>iOS|Android)\b/
+        HotwireNativeVersionGate::VersionGate.native_version_regexes = [custom_regex1, custom_regex2]
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex1, custom_regex2])
       end
 
       it "raises ArgumentError if set to non-Regexp" do
         expect {
-          HotwireNativeVersionGate::VersionGate.native_version_regex = "not a regex"
-        }.to raise_error(ArgumentError, "native_version_regex must be a Regexp")
+          HotwireNativeVersionGate::VersionGate.native_version_regexes = "not a regex"
+        }.to raise_error(ArgumentError, /native_version_regexes must be an array of Regexp objects/)
+      end
+
+      it "raises ArgumentError if array contains non-Regexp" do
+        expect {
+          HotwireNativeVersionGate::VersionGate.native_version_regexes = [/\d+/, "not a regex"]
+        }.to raise_error(ArgumentError, /native_version_regexes must be an array of Regexp objects/)
+      end
+    end
+
+    describe "prepending regexes using native_version_regexes reader" do
+      it "prepends a single regex to the existing array" do
+        default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
+        custom_regex = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        HotwireNativeVersionGate::VersionGate.native_version_regexes.prepend(custom_regex)
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex] + default_regexes)
+      end
+
+      it "prepends multiple regexes to the existing array" do
+        default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
+        custom_regex1 = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        custom_regex2 = /\bAnotherApp (?<platform>iOS|Android)\b/
+        # prepend adds elements in the order passed, so custom_regex2 will be first, then custom_regex1
+        HotwireNativeVersionGate::VersionGate.native_version_regexes.prepend(custom_regex2, custom_regex1)
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex2, custom_regex1] + default_regexes)
+      end
+
+      it "works when used in a controller context" do
+        controller_class = Class.new do
+          include HotwireNativeVersionGate::Concern
+        end
+
+        default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
+        custom_regex = /\bCustomApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        controller_class.native_version_regexes.prepend(custom_regex)
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex] + default_regexes)
       end
     end
 
@@ -152,7 +196,7 @@ RSpec.describe HotwireNativeVersionGate do
 
       context "with custom regex" do
         before do
-          HotwireNativeVersionGate::VersionGate.native_version_regex = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+          HotwireNativeVersionGate::VersionGate.native_version_regexes = /\bMyApp (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
           HotwireNativeVersionGate::VersionGate.native_feature(:custom_feature, ios: true, android: true)
         end
 
@@ -164,6 +208,45 @@ RSpec.describe HotwireNativeVersionGate do
         it "doesn't match default format with custom regex" do
           user_agent = "Hotwire Native App iOS/1.0.0"
           expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:custom_feature, user_agent)).to be false
+        end
+      end
+
+      context "with fallback regex (no version in user agent)" do
+        let(:fallback_user_agent) { "Hotwire Native iOS;" }
+
+        context "with boolean flags" do
+          before do
+            HotwireNativeVersionGate::VersionGate.native_feature(:enabled_feature, ios: true, android: true)
+            HotwireNativeVersionGate::VersionGate.native_feature(:disabled_feature, ios: false, android: false)
+            HotwireNativeVersionGate::VersionGate.native_feature(:ios_only, ios: true, android: false)
+            HotwireNativeVersionGate::VersionGate.native_feature(:android_only, ios: false, android: true)
+          end
+
+          it "returns true when feature is enabled for platform" do
+            expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:enabled_feature, fallback_user_agent)).to be true
+            expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:ios_only, fallback_user_agent)).to be true
+          end
+
+          it "returns false when feature is disabled for platform" do
+            expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:disabled_feature, fallback_user_agent)).to be false
+            expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:android_only, fallback_user_agent)).to be false
+          end
+        end
+
+        context "with version string requirements" do
+          before do
+            HotwireNativeVersionGate::VersionGate.native_feature(:versioned_feature, ios: "1.2.0", android: "2.0.0")
+          end
+
+          it "returns false when user agent has no version to compare" do
+            expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:versioned_feature, fallback_user_agent)).to be false
+          end
+
+          it "returns false for Android version requirement when user agent has no version" do
+            android_fallback_user_agent = "Hotwire Native Android;"
+            HotwireNativeVersionGate::VersionGate.native_feature(:android_versioned, android: "1.0.0")
+            expect(HotwireNativeVersionGate::VersionGate.feature_enabled?(:android_versioned, android_fallback_user_agent)).to be false
+          end
         end
       end
     end
@@ -199,8 +282,8 @@ RSpec.describe HotwireNativeVersionGate do
       # Reset state
       HotwireNativeVersionGate::VersionGate.instance_variable_set(:@native_features, {})
       HotwireNativeVersionGate::VersionGate.instance_variable_set(
-        :@native_version_regex,
-        HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX
+        :@native_version_regexes,
+        [HotwireNativeVersionGate::VersionGate::DEFAULT_NATIVE_VERSION_REGEX, HotwireNativeVersionGate::VersionGate::FALLBACK_NATIVE_VERSION_REGEX]
       )
     end
 
@@ -212,11 +295,20 @@ RSpec.describe HotwireNativeVersionGate do
       end
     end
 
-    describe ".native_version_regex=" do
+    describe ".native_version_regexes=" do
       it "delegates to VersionGate" do
-        custom_regex = /Custom (iOS|Android)\/(\d+\.\d+\.\d+)/
-        controller_class.native_version_regex = custom_regex
-        expect(HotwireNativeVersionGate::VersionGate.native_version_regex).to eq(custom_regex)
+        custom_regex = /\bCustom (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        controller_class.native_version_regexes = custom_regex
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex])
+      end
+    end
+
+    describe "prepending regexes using native_version_regexes reader" do
+      it "prepends regexes when used in controller context" do
+        default_regexes = HotwireNativeVersionGate::VersionGate.native_version_regexes.dup
+        custom_regex = /\bCustom (?<platform>iOS|Android)\/(?<version>\d+\.\d+\.\d+)\b/
+        controller_class.native_version_regexes.prepend(custom_regex)
+        expect(HotwireNativeVersionGate::VersionGate.native_version_regexes).to eq([custom_regex] + default_regexes)
       end
     end
 
